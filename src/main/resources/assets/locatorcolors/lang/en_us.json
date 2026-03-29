@@ -1,0 +1,13 @@
+{
+  "locatorcolors.gui.mod_options": "Locator Colors Options",
+  "locatorcolors.option.colorize_chat": "Colorize Chat Names",
+  "locatorcolors.option.colorize_chat.tooltip": "Applies the player's locator color to their name in the chat window.",
+  "locatorcolors.option.colorize_tab_list": "Colorize Tab List Names",
+  "locatorcolors.option.colorize_tab_list.tooltip": "Applies the player's locator color to their name in the player list.",
+  "locatorcolors.option.colorize_name_tags": "Colorize Name Tags",
+  "locatorcolors.option.colorize_name_tags.tooltip": "Applies the player's locator color to the nameplate rendered above their character's head.",
+  "locatorcolors.option.show_locator_heads": "Show Player Heads",
+  "locatorcolors.option.show_locator_heads.tooltip": "Renders the player's 2D skin face inside their colored locator dot when the player list is open.",
+  "locatorcolors.option.colorize_self": "Colorize Own Name",
+  "locatorcolors.option.colorize_self.tooltip": "If disabled, your own name will remain its default color across the chat, tab list, and name tags."
+}

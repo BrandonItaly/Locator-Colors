@@ -1,0 +1,20 @@
+# gradle
+.gradle/
+build/
+out/
+classes/
+run/
+.DS_Store
+
+# kotlin
+.kotlin/
+
+# vscode
+.settings/
+.vscode/
+bin/
+.classpath
+.project
+
+# secrets
+.env

@@ -1,0 +1,43 @@
+{
+  "schemaVersion": 1,
+  "id": "${mod_id}",
+  "version": "${version}",
+  "name": "${mod_name}",
+  "description": "${mod_description}",
+  "authors": [
+    "${mod_authors}"
+  ],
+  "contributors": [
+    "${mod_credits}"
+  ],
+  "contact": {
+    "homepage": "${mod_homepage}",
+    "sources": "${mod_source}",
+    "issues": "${mod_issues}"
+  },
+  "license": "${mod_license}",
+  "icon": "assets/${mod_id}/icon.png",
+  "environment": "*",
+  "entrypoints": {
+    "main": [
+      "com.brandonitaly.locatorcolors.LocatorColors"
+    ],
+    "client": [
+      "com.brandonitaly.locatorcolors.client.LocatorColorsClient"
+    ],
+    "modmenu": [
+      "com.brandonitaly.locatorcolors.client.ModMenuIntegration"
+    ]
+  },
+  "accessWidener": "${aw}",
+  "mixins": [
+    "${mod_id}.mixins.json"
+  ],
+  "depends": {
+    "fabric-api": "*",
+    "fabricloader": ">=0.17",
+    "minecraft": [
+      "${mc_version_range}"
+    ]
+  }
+}

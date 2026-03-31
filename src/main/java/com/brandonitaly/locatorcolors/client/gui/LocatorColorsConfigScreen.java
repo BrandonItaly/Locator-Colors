@@ -32,7 +32,7 @@ public class LocatorColorsConfigScreen extends OptionsSubScreen {
         LinearLayout footer = this.layout.addToFooter(LinearLayout.horizontal().spacing(8));
 
         // Reset to Defaults Button
-        footer.addChild(Button.builder(Component.translatable("controls.reset"), (button) -> {
+        footer.addChild(Button.builder(Component.translatable("dataPack.validation.reset"), (button) -> {
             LocatorColorsConfig.resetToDefault();
             this.minecraft.setScreen(new LocatorColorsConfigScreen(this.lastScreen));
         }).build());

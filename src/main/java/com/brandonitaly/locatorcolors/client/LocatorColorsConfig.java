@@ -18,19 +18,21 @@ public class LocatorColorsConfig {
     private static volatile boolean colorizeChat;
     private static volatile boolean colorizeTabList;
     private static volatile boolean colorizeNameTags;
-    private static volatile boolean showLocatorHeads;
     private static volatile boolean colorizeSelf;
+    private static volatile boolean showLocatorHeads;
+    private static volatile boolean showHeadBorders;
 
-    private record ConfigData(boolean colorizeChat, boolean colorizeTabList, boolean colorizeNameTags, boolean showLocatorHeads, boolean colorizeSelf) {}
+    private record ConfigData(boolean colorizeChat, boolean colorizeTabList, boolean colorizeNameTags, boolean colorizeSelf, boolean showLocatorHeads, boolean showHeadBorders) {}
 
-    private static final ConfigData DEFAULTS = new ConfigData(true, true, true, true, false);
+    private static final ConfigData DEFAULTS = new ConfigData(true, true, true, false, true, true);
 
     private static final Codec<ConfigData> CODEC = RecordCodecBuilder.create(instance -> instance.group(
         Codec.BOOL.optionalFieldOf("colorizeChat", DEFAULTS.colorizeChat()).forGetter(ConfigData::colorizeChat),
         Codec.BOOL.optionalFieldOf("colorizeTabList", DEFAULTS.colorizeTabList()).forGetter(ConfigData::colorizeTabList),
         Codec.BOOL.optionalFieldOf("colorizeNameTags", DEFAULTS.colorizeNameTags()).forGetter(ConfigData::colorizeNameTags),
+        Codec.BOOL.optionalFieldOf("colorizeSelf", DEFAULTS.colorizeSelf()).forGetter(ConfigData::colorizeSelf),
         Codec.BOOL.optionalFieldOf("showLocatorHeads", DEFAULTS.showLocatorHeads()).forGetter(ConfigData::showLocatorHeads),
-        Codec.BOOL.optionalFieldOf("colorizeSelf", DEFAULTS.colorizeSelf()).forGetter(ConfigData::colorizeSelf)
+        Codec.BOOL.optionalFieldOf("showHeadBorders", DEFAULTS.showHeadBorders()).forGetter(ConfigData::showHeadBorders)
     ).apply(instance, ConfigData::new));
 
     static { load(); }
@@ -50,14 +52,19 @@ public class LocatorColorsConfig {
         isColorizeNameTagsEnabled(), LocatorColorsConfig::setColorizeNameTags
     );
 
+    public static final OptionInstance<Boolean> COLORIZE_SELF = OptionInstance.createBoolean(
+        "locatorcolors.option.colorize_self", value -> Tooltip.create(Component.translatable("locatorcolors.option.colorize_self.tooltip")),
+        isColorizeSelfEnabled(), LocatorColorsConfig::setColorizeSelf
+    );
+
     public static final OptionInstance<Boolean> SHOW_LOCATOR_HEADS = OptionInstance.createBoolean(
         "locatorcolors.option.show_locator_heads", value -> Tooltip.create(Component.translatable("locatorcolors.option.show_locator_heads.tooltip")),
         isShowLocatorHeadsEnabled(), LocatorColorsConfig::setShowLocatorHeads
     );
 
-    public static final OptionInstance<Boolean> COLORIZE_SELF = OptionInstance.createBoolean(
-        "locatorcolors.option.colorize_self", value -> Tooltip.create(Component.translatable("locatorcolors.option.colorize_self.tooltip")),
-        isColorizeSelfEnabled(), LocatorColorsConfig::setColorizeSelf
+    public static final OptionInstance<Boolean> SHOW_HEAD_BORDERS = OptionInstance.createBoolean(
+        "locatorcolors.option.show_head_borders", value -> Tooltip.create(Component.translatable("locatorcolors.option.show_head_borders.tooltip")),
+        isShowHeadBordersEnabled(), LocatorColorsConfig::setShowHeadBorders
     );
 
     // Getters & Setters
@@ -70,14 +77,17 @@ public class LocatorColorsConfig {
     public static boolean isColorizeNameTagsEnabled() { return colorizeNameTags; }
     public static void setColorizeNameTags(boolean enabled) { if (colorizeNameTags != enabled) { colorizeNameTags = enabled; save(); } }
 
-    public static boolean isShowLocatorHeadsEnabled() { return showLocatorHeads; }
-    public static void setShowLocatorHeads(boolean enabled) { if (showLocatorHeads != enabled) { showLocatorHeads = enabled; save(); } }
-
     public static boolean isColorizeSelfEnabled() { return colorizeSelf; }
     public static void setColorizeSelf(boolean enabled) { if (colorizeSelf != enabled) { colorizeSelf = enabled; save(); } }
 
+    public static boolean isShowLocatorHeadsEnabled() { return showLocatorHeads; }
+    public static void setShowLocatorHeads(boolean enabled) { if (showLocatorHeads != enabled) { showLocatorHeads = enabled; save(); } }
+
+    public static boolean isShowHeadBordersEnabled() { return showHeadBorders; }
+    public static void setShowHeadBorders(boolean enabled) { if (showHeadBorders != enabled) { showHeadBorders = enabled; save(); } }
+
     public static OptionInstance<?>[] asOptions() {
-        return new OptionInstance<?>[] { COLORIZE_CHAT, COLORIZE_TAB_LIST, COLORIZE_NAME_TAGS, SHOW_LOCATOR_HEADS, COLORIZE_SELF };
+        return new OptionInstance<?>[] { COLORIZE_CHAT, COLORIZE_TAB_LIST, COLORIZE_NAME_TAGS, COLORIZE_SELF, SHOW_LOCATOR_HEADS, SHOW_HEAD_BORDERS };
     }
 
     private static void load() {
@@ -85,20 +95,22 @@ public class LocatorColorsConfig {
         colorizeChat = data.colorizeChat();
         colorizeTabList = data.colorizeTabList();
         colorizeNameTags = data.colorizeNameTags();
-        showLocatorHeads = data.showLocatorHeads();
         colorizeSelf = data.colorizeSelf();
+        showLocatorHeads = data.showLocatorHeads();
+        showHeadBorders = data.showHeadBorders();
     }
 
     private static void save() {
-        JsonCodecFileStore.write(CONFIG_PATH, CODEC, new ConfigData(colorizeChat, colorizeTabList, colorizeNameTags, showLocatorHeads, colorizeSelf), "LocatorColorsConfig");
+        JsonCodecFileStore.write(CONFIG_PATH, CODEC, new ConfigData(colorizeChat, colorizeTabList, colorizeNameTags, colorizeSelf, showLocatorHeads, showHeadBorders), "LocatorColorsConfig");
     }
 
     public static void resetToDefault() {
         COLORIZE_CHAT.set(DEFAULTS.colorizeChat());
         COLORIZE_TAB_LIST.set(DEFAULTS.colorizeTabList());
         COLORIZE_NAME_TAGS.set(DEFAULTS.colorizeNameTags());
-        SHOW_LOCATOR_HEADS.set(DEFAULTS.showLocatorHeads());
         COLORIZE_SELF.set(DEFAULTS.colorizeSelf());
+        SHOW_LOCATOR_HEADS.set(DEFAULTS.showLocatorHeads());
+        SHOW_HEAD_BORDERS.set(DEFAULTS.showHeadBorders());
         save();
     }
 }

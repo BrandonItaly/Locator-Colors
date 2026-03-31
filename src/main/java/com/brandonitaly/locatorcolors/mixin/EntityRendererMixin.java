@@ -18,40 +18,48 @@ public class EntityRendererMixin {
 
     @ModifyReturnValue(method = "getNameTag", at = @At("RETURN"))
     private Component locatorcolors$colorizeNameTag(Component originalName, Entity entity) {
-        Minecraft mc = Minecraft.getInstance();
-
-        // 1. Validate Config, Entity type, and Client state
-        if (!LocatorColorsConfig.isColorizeNameTagsEnabled() || originalName == null || !(entity instanceof Player player) || mc.player == null || mc.player.connection == null) {
+        // 1. Abort immediately if disabled, null, or not a Player
+        if (!LocatorColorsConfig.isColorizeNameTagsEnabled() || originalName == null || !(entity instanceof Player player)) {
             return originalName;
         }
+
+        Minecraft mc = Minecraft.getInstance();
+        if (mc.player == null || mc.player.connection == null) {
+            return originalName;
+        }
+
+        UUID targetUUID = player.getUUID();
 
         // 2. Enforce Colorize Self toggle
-        if (!LocatorColorsConfig.isColorizeSelfEnabled() && player.getUUID().equals(mc.player.getUUID())) {
+        if (!LocatorColorsConfig.isColorizeSelfEnabled() && targetUUID.equals(mc.player.getUUID())) {
             return originalName;
         }
-
-        String playerName = player.getGameProfile().name();
 
         final int[] foundColor = {-1};
 
-        // 3. Scan the waypoint manager to find this specific player's assigned color
+        // 3. Scan the waypoint manager
         mc.player.connection.getWaypointManager().forEachWaypoint(player, waypoint -> {
-            if (foundColor[0] != -1) return; // Stop searching if we already found them
+            if (foundColor[0] != -1) return;
 
+            // Check UUID first
             UUID wpId = waypoint.id().left().orElse(null);
-            String wpName = waypoint.id().right().orElse(null);
+            if (wpId != null && wpId.equals(targetUUID)) {
+                foundColor[0] = (Integer) waypoint.icon().color.orElseGet(() -> ARGB.setBrightness(ARGB.color(255, wpId.hashCode()), 0.9F));
+                return;
+            }
 
-            // Check if either UUID or Name perfectly matches
-            if ((wpId != null && wpId.equals(player.getUUID())) || (wpName != null && wpName.equalsIgnoreCase(playerName))) {
+            // Only evaluate String Name if UUID failed
+            String wpName = waypoint.id().right().orElse(null);
+            if (wpName != null) {
+                String targetName = player.getGameProfile().name();
                 
-                // Grab explicit color, or calculate the fallback hash dynamically
-                foundColor[0] = (Integer) waypoint.icon().color.orElseGet(() -> 
-                    wpId != null ? ARGB.setBrightness(ARGB.color(255, wpId.hashCode()), 0.9F) : ARGB.setBrightness(ARGB.color(255, wpName.hashCode()), 0.9F)
-                );
+                if (wpName.equalsIgnoreCase(targetName)) {
+                    foundColor[0] = (Integer) waypoint.icon().color.orElseGet(() -> ARGB.setBrightness(ARGB.color(255, wpName.hashCode()), 0.9F));
+                }
             }
         });
 
-        // 4. If a color was found, strip the alpha channel and apply it
+        // 4. Apply color
         if (foundColor[0] != -1) {
             return originalName.copy().withStyle(style -> style.withColor(foundColor[0] & 0xFFFFFF));
         }

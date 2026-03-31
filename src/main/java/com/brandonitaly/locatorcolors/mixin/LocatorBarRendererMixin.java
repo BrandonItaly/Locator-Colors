@@ -36,7 +36,7 @@ public class LocatorBarRendererMixin {
         Operation<Void> original,
         @Local TrackedWaypoint waypoint 
     ) {
-        // 1. Config Toggle & Strict Size Filter (Abort early if disabled or not 9x9)
+        // 1. Config Toggle & Strict Size Filter
         if (!LocatorColorsConfig.isShowLocatorHeadsEnabled() || width != 9 || height != 9) {
             original.call(graphics, renderPipeline, sprite, x, y, width, height, color);
             return;
@@ -44,13 +44,13 @@ public class LocatorBarRendererMixin {
 
         Minecraft mc = Minecraft.getInstance();
 
-        // 2. Tab Menu & Connection Check (Abort early if Tab is not held)
+        // 2. Tab Menu & Connection Check
         if (!mc.options.keyPlayerList.isDown() || mc.getConnection() == null) {
             original.call(graphics, renderPipeline, sprite, x, y, width, height, color);
             return;
         }
 
-        // 3. Waypoint & Player Lookup (Abort early if player isn't found)
+        // 3. Waypoint & Player Lookup
         UUID wpId = waypoint.id().left().orElse(null);
         if (wpId == null) {
             original.call(graphics, renderPipeline, sprite, x, y, width, height, color);
@@ -66,19 +66,29 @@ public class LocatorBarRendererMixin {
         // --- DRAW HEAD ---
         Identifier skinTexture = info.getSkin().body().texturePath();
         UUID playerId = info.getProfile().id();
+        
         Player playerByUUID = mc.level != null ? mc.level.getPlayerByUUID(playerId) : null;
         boolean flip = playerByUUID != null && AvatarRenderer.isPlayerUpsideDown(playerByUUID);
 
-        // Draw the 7x7 solid border background
-        int solidBorderColor = color | 0xFF000000;
-        graphics.fill(x + 2, y + 1, x + 7, y + 8, solidBorderColor);
-        graphics.fill(x + 1, y + 2, x + 8, y + 7, solidBorderColor);
+        if (!LocatorColorsConfig.isShowHeadBordersEnabled()) {
+            // Draw the 7x7 face directly in the center, skipping the colored background border
+            //? if >=26.1 {
+            PlayerFaceExtractor.extractRenderState(graphics, skinTexture, x + 1, y + 1, 7, info.showHat(), flip, -1);
+            //?} else {
+            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 1, y + 1, 7, true, flip, -1);
+            *///?}
+        } else {
+            // Draw the 7x7 solid border background
+            int solidBorderColor = color | 0xFF000000;
+            graphics.fill(x + 2, y + 1, x + 7, y + 8, solidBorderColor);
+            graphics.fill(x + 1, y + 2, x + 8, y + 7, solidBorderColor);
 
-        // Draw the 5x5 face on top
-        //? if >=26.1 {
-        PlayerFaceExtractor.extractRenderState(graphics, skinTexture, x + 2, y + 2, 5, info.showHat(), flip, -1);
-        //?} else {
-        /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 2, y + 2, 5, true, flip, -1);
-        *///?}
+            // Draw the 5x5 face on top
+            //? if >=26.1 {
+            PlayerFaceExtractor.extractRenderState(graphics, skinTexture, x + 2, y + 2, 5, info.showHat(), flip, -1);
+            //?} else {
+            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 2, y + 2, 5, true, flip, -1);
+            *///?}
+        }
     }
 }

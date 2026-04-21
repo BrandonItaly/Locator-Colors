@@ -37,7 +37,7 @@
     "fabric-api": "*",
     "fabricloader": ">=0.17",
     "minecraft": [
-      "${mc_version_range}"
+      ">=${mc_version_range}"
     ]
   }
 }

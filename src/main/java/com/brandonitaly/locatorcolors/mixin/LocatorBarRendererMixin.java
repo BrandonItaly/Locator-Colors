@@ -6,7 +6,11 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.pipeline.RenderPipeline;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
+//? if >=26.1 {
 import net.minecraft.client.gui.components.PlayerFaceExtractor;
+//?} else {
+/*import net.minecraft.client.gui.components.PlayerFaceRenderer;
+*///?}
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.PlayerInfo;
 import net.minecraft.client.renderer.entity.player.AvatarRenderer;
@@ -18,7 +22,11 @@ import org.spongepowered.asm.mixin.injection.At;
 
 import java.util.UUID;
 
+//? if >=26.2 {
+/*@Mixin(net.minecraft.client.gui.contextualbar.LocatorBar.class)
+*///?} else {
 @Mixin(net.minecraft.client.gui.contextualbar.LocatorBarRenderer.class)
+//?}
 public class LocatorBarRendererMixin {
 
     @WrapOperation(
@@ -75,7 +83,7 @@ public class LocatorBarRendererMixin {
             //? if >=26.1 {
             PlayerFaceExtractor.extractRenderState(graphics, skinTexture, x + 1, y + 1, 7, info.showHat(), flip, -1);
             //?} else {
-            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 1, y + 1, 7, true, flip, -1);
+            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 1, y + 1, 7, info.showHat(), flip, -1);
             *///?}
         } else {
             // Draw the 7x7 solid border background
@@ -87,7 +95,7 @@ public class LocatorBarRendererMixin {
             //? if >=26.1 {
             PlayerFaceExtractor.extractRenderState(graphics, skinTexture, x + 2, y + 2, 5, info.showHat(), flip, -1);
             //?} else {
-            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 2, y + 2, 5, true, flip, -1);
+            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 2, y + 2, 5, info.showHat(), flip, -1);
             *///?}
         }
     }

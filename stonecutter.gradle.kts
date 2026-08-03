@@ -18,7 +18,7 @@ stonecutter parameters {
             replace("net.minecraft.client.model.PlayerModel", "net.minecraft.client.model.player.PlayerModel")
         }
 
-        string(eval(current.version, ">=26.0")) {
+        string(eval(current.version, ">=26.1")) {
             replace("accessWidener v2 named", "accessWidener v2 official")
             replace("keybinding.v1.KeyBindingHelper", "keymapping.v1.KeyMappingHelper")
             replace("KeyBindingHelper", "KeyMappingHelper")
@@ -28,6 +28,8 @@ stonecutter parameters {
             replace("state.CameraRenderState", "state.level.CameraRenderState")
             replace("DimensionType.CardinalLightType", "net.minecraft.world.level.CardinalLighting.Type")
             replace("GuiGraphics", "GuiGraphicsExtractor")
+            replace("graphics.drawString(", "graphics.text(")
+            replace(".drawCenteredString(", ".centeredText(")
             replace("renderContent", "extractContent")
             replace("renderSelection", "extractSelection")
             replace("renderWidget", "extractWidgetRenderState")
@@ -35,8 +37,19 @@ stonecutter parameters {
             replace(".renderMenuBackground", ".extractMenuBackground")
             replace("void render(", "void extractRenderState(")
             replace(".render(gui", ".extractRenderState(gui")
-            replace("EditGameRulesScreen", "WorldCreationGameRulesScreen")
-            replace("PlayerFaceRenderer", "PlayerFaceExtractor")
+        }
+
+        string(eval(current.version, ">=26.2")) {
+            replace(".setScreen(", ".gui.setScreen(")
+            replace("::setScreen", ".gui::setScreen")
+            replace("client.screen)", "client.gui.screen())")
+            replace("client.screen instanceof", "client.gui.screen() instanceof")
+            replace("this.minecraft.screen", "this.minecraft.gui.screen()")
+        }
+
+        string(eval(current.version, ">=26.3-snapshot-5")) {
+            replace("InputConstants.Type.KEYSYM", "InputConstants.Type.KEYBOARD")
+            replace("GLFW.GLFW_KEY", "InputConstants.KEY")
         }
     }
 }

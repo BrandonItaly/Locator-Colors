@@ -15,6 +15,9 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.List;
 import java.util.UUID;
 
 @Mixin(ChatComponent.class)
@@ -41,36 +44,47 @@ public class ChatComponentMixin {
         Minecraft mc = Minecraft.getInstance();
         if (mc.getConnection() == null || mc.player == null) return contents;
 
-        String rawMessage = contents.getString();
-        PlayerInfo sender = null;
-        int earliestIndex = Integer.MAX_VALUE;
+        List<PlayerMatch> targetPlayers = new ArrayList<>();
+        UUID localPlayerId = mc.player.getUUID();
+        boolean colorizeSelf = LocatorColorsConfig.isColorizeSelfEnabled();
 
         for (PlayerInfo info : mc.getConnection().getOnlinePlayers()) {
+            if (info.getProfile() == null || info.getProfile().name() == null) continue;
+
+            UUID targetId = info.getProfile().id();
+            if (!colorizeSelf && targetId.equals(localPlayerId)) {
+                continue;
+            }
+
             String name = info.getProfile().name();
-            int index = rawMessage.indexOf(name);
-            if (index != -1 && index < earliestIndex) {
-                earliestIndex = index;
-                sender = info;
-                if (index <= 1) break;
+            if (!name.isEmpty()) {
+                TextColor color = LocatorColorUtil.getPlayerColor(targetId, name);
+                targetPlayers.add(new PlayerMatch(name, color));
             }
         }
 
-        if (sender != null) {
-            String targetName = sender.getProfile().name();
-            UUID targetId = sender.getProfile().id();
+        if (targetPlayers.isEmpty()) return contents;
 
-            if (!LocatorColorsConfig.isColorizeSelfEnabled() && targetId.equals(mc.player.getUUID())) {
-                return contents;
+        // Sort descending by name length so longer names match first (e.g. Daniel before Dan)
+        targetPlayers.sort(Comparator.comparingInt((PlayerMatch p) -> p.name().length()).reversed());
+
+        String rawMessage = contents.getString();
+        boolean anyPresent = false;
+        for (PlayerMatch player : targetPlayers) {
+            if (rawMessage.contains(player.name())) {
+                anyPresent = true;
+                break;
             }
-
-            TextColor color = LocatorColorUtil.getPlayerColor(targetId, targetName);
-            return replaceFirstOccurrence(contents, targetName, color, new boolean[]{false});
         }
 
-        return contents;
+        if (!anyPresent) return contents;
+
+        return replacePlayerNames(contents, targetPlayers);
     }
 
-    private Component replaceFirstOccurrence(Component component, String targetName, TextColor color, boolean[] found) {
+    private record PlayerMatch(String name, TextColor color) {}
+
+    private Component replacePlayerNames(Component component, List<PlayerMatch> players) {
         MutableComponent result;
         Style baseStyle = component.getStyle();
 
@@ -78,47 +92,86 @@ public class ChatComponentMixin {
             Object[] args = translatable.getArgs();
             Object[] newArgs = new Object[args.length];
             for (int i = 0; i < args.length; i++) {
-                if (!found[0] && args[i] instanceof String str && str.contains(targetName)) {
-                    newArgs[i] = colorizeString(str, targetName, color, baseStyle, found);
+                if (args[i] instanceof String str) {
+                    newArgs[i] = colorizeAllPlayersInText(str, players, baseStyle);
                 } else if (args[i] instanceof Component argComp) {
-                    newArgs[i] = replaceFirstOccurrence(argComp, targetName, color, found);
+                    newArgs[i] = replacePlayerNames(argComp, players);
                 } else {
                     newArgs[i] = args[i];
                 }
             }
             result = Component.translatable(translatable.getKey(), newArgs).withStyle(baseStyle);
-        } else if (!found[0] && component.getContents() instanceof PlainTextContents plain) {
-            String text = plain.text();
-            if (text.contains(targetName)) {
-                result = colorizeString(text, targetName, color, baseStyle, found);
-            } else {
-                result = MutableComponent.create(component.getContents()).withStyle(baseStyle);
-            }
+        } else if (component.getContents() instanceof PlainTextContents plain) {
+            result = colorizeAllPlayersInText(plain.text(), players, baseStyle);
         } else {
             result = MutableComponent.create(component.getContents()).withStyle(baseStyle);
         }
 
         for (Component sibling : component.getSiblings()) {
-            result.append(replaceFirstOccurrence(sibling, targetName, color, found));
+            result.append(replacePlayerNames(sibling, players));
         }
 
         return result;
     }
 
-    private MutableComponent colorizeString(String text, String targetName, TextColor color, Style baseStyle, boolean[] found) {
-        int index = text.indexOf(targetName);
-        if (index == -1 || found[0]) return Component.literal(text).withStyle(baseStyle);
-
-        found[0] = true;
+    private MutableComponent colorizeAllPlayersInText(String text, List<PlayerMatch> players, Style baseStyle) {
         MutableComponent comp = Component.empty();
-        if (index > 0) comp.append(Component.literal(text.substring(0, index)).withStyle(baseStyle));
+        int cursor = 0;
+        int len = text.length();
 
-        Style coloredStyle = (baseStyle != null ? baseStyle : Style.EMPTY).withColor(color);
-        comp.append(Component.literal(targetName).withStyle(coloredStyle));
+        while (cursor < len) {
+            int earliestIndex = -1;
+            PlayerMatch bestMatch = null;
 
-        if (index + targetName.length() < text.length()) {
-            comp.append(Component.literal(text.substring(index + targetName.length())).withStyle(baseStyle));
+            for (PlayerMatch player : players) {
+                int index = text.indexOf(player.name(), cursor);
+                while (index != -1) {
+                    if (isWordBoundary(text, index, player.name().length())) {
+                        if (earliestIndex == -1 || index < earliestIndex || (index == earliestIndex && player.name().length() > bestMatch.name().length())) {
+                            earliestIndex = index;
+                            bestMatch = player;
+                        }
+                        break;
+                    }
+                    index = text.indexOf(player.name(), index + 1);
+                }
+            }
+
+            if (earliestIndex == -1 || bestMatch == null) {
+                comp.append(Component.literal(text.substring(cursor)).withStyle(baseStyle));
+                break;
+            }
+
+            if (earliestIndex > cursor) {
+                comp.append(Component.literal(text.substring(cursor, earliestIndex)).withStyle(baseStyle));
+            }
+
+            Style coloredStyle = (baseStyle != null ? baseStyle : Style.EMPTY).withColor(bestMatch.color());
+            comp.append(Component.literal(bestMatch.name()).withStyle(coloredStyle));
+
+            cursor = earliestIndex + bestMatch.name().length();
         }
+
         return comp;
+    }
+
+    private boolean isWordBoundary(String text, int index, int matchLen) {
+        int before = index - 1;
+        if (before >= 0) {
+            char c = text.charAt(before);
+            if (Character.isLetterOrDigit(c) || c == '_') {
+                return false;
+            }
+        }
+
+        int after = index + matchLen;
+        if (after < text.length()) {
+            char c = text.charAt(after);
+            if (Character.isLetterOrDigit(c) || c == '_') {
+                return false;
+            }
+        }
+
+        return true;
     }
 }

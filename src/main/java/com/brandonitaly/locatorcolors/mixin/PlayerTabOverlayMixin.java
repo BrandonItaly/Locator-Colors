@@ -24,7 +24,8 @@ public class PlayerTabOverlayMixin {
         }
 
         Minecraft mc = Minecraft.getInstance();
-        
+        if (info.getProfile() == null) return;
+
         UUID targetId = info.getProfile().id();
         String targetName = info.getProfile().name();
 
@@ -34,7 +35,7 @@ public class PlayerTabOverlayMixin {
         }
 
         Component original = cir.getReturnValue();
-        
+
         // Fallback to the profile name
         Component baseComponent = original != null ? original : Component.literal(targetName);
 

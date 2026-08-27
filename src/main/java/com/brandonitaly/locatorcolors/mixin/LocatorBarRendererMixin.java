@@ -1,6 +1,7 @@
 package com.brandonitaly.locatorcolors.mixin;
 
 import com.brandonitaly.locatorcolors.client.LocatorColorsConfig;
+import com.brandonitaly.locatorcolors.client.LocatorColorsKeyBindings;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
@@ -44,16 +45,23 @@ public class LocatorBarRendererMixin {
         Operation<Void> original,
         @Local TrackedWaypoint waypoint 
     ) {
+        LocatorColorsConfig.LocatorHeadMode headMode = LocatorColorsConfig.getLocatorHeadMode();
+
         // 1. Config Toggle & Strict Size Filter
-        if (!LocatorColorsConfig.isShowLocatorHeadsEnabled() || width != 9 || height != 9) {
+        if (headMode == LocatorColorsConfig.LocatorHeadMode.NEVER || width != 9 || height != 9) {
             original.call(graphics, renderPipeline, sprite, x, y, width, height, color);
             return;
         }
 
         Minecraft mc = Minecraft.getInstance();
+        if (mc.getConnection() == null) {
+            original.call(graphics, renderPipeline, sprite, x, y, width, height, color);
+            return;
+        }
 
-        // 2. Tab Menu & Connection Check
-        if (!mc.options.keyPlayerList.isDown() || mc.getConnection() == null) {
+        // 2. Tab Menu & Dedicated Inspect Key Check
+        boolean isInspecting = mc.options.keyPlayerList.isDown() || LocatorColorsKeyBindings.isInspectDown();
+        if (headMode == LocatorColorsConfig.LocatorHeadMode.ON_KEY && !isInspecting) {
             original.call(graphics, renderPipeline, sprite, x, y, width, height, color);
             return;
         }
@@ -97,6 +105,28 @@ public class LocatorBarRendererMixin {
             //?} else {
             /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 2, y + 2, 5, info.showHat(), flip, -1);
             *///?}
+        }
+
+        // --- DRAW DISTANCE (when inspecting) ---
+        if (isInspecting && LocatorColorsConfig.isShowLocatorDistanceEnabled() && playerByUUID != null && mc.player != null) {
+            double dist = mc.player.distanceTo(playerByUUID);
+            int distMeters = (int) Math.round(dist);
+            String distStr = distMeters >= 1000 ? String.format("%.1fk", distMeters / 1000.0) : (distMeters + "m");
+            
+            float scale = 0.75F;
+            float textWidth = mc.font.width(distStr) * scale;
+            float renderX = (x + 4.5F) - (textWidth / 2.0F);
+            float renderY = y - 8.0F;
+
+            graphics.pose().pushMatrix();
+            graphics.pose().translate(renderX, renderY);
+            graphics.pose().scale(scale, scale);
+            //? if >=26.1 {
+            graphics.text(mc.font, distStr, 0, 0, 0xFFFFFFFF);
+            //?} else {
+            /*graphics.drawString(mc.font, distStr, 0, 0, 0xFFFFFFFF);
+            *///?}
+            graphics.pose().popMatrix();
         }
     }
 }

@@ -48,6 +48,7 @@ stonecutter parameters {
         }
 
         string(eval(current.version, ">=26.3-snapshot-5")) {
+            replace("com.mojang.blaze3d.pipeline.RenderPipeline", "com.mojang.renderpearl.api.pipeline.RenderPipeline")
             replace("InputConstants.Type.KEYSYM", "InputConstants.Type.KEYBOARD")
             replace("GLFW.GLFW_KEY", "InputConstants.KEY")
         }

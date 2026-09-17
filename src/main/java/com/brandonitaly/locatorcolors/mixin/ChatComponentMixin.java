@@ -100,7 +100,9 @@ public class ChatComponentMixin {
                     newArgs[i] = args[i];
                 }
             }
-            result = Component.translatable(translatable.getKey(), newArgs).withStyle(baseStyle);
+            result = Component.translatableWithFallback(
+                translatable.getKey(), translatable.getFallback(), newArgs
+            ).withStyle(baseStyle);
         } else if (component.getContents() instanceof PlainTextContents plain) {
             result = colorizeAllPlayersInText(plain.text(), players, baseStyle);
         } else {

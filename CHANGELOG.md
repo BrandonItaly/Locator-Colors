@@ -1,6 +1,4 @@
-- Added an option to choose when player heads appear on the locator bar (On Key Press, Always, or Never)
-- Added an option to display distance above player icons on the locator bar while inspecting
-- Added a dedicated keybind to inspect the locator bar
-- Improved chat name colorization to support multiple player names and prevent matching inside other words
+- Added support for 26.3
+- Fixed chat name colorization discarding fallback text in translated messages, causing raw translation keys to appear
 
 **Full Changelog**: https://github.com/BrandonItaly/Locator-Colors/commits/master

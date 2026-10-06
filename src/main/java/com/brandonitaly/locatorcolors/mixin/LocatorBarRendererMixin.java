@@ -47,8 +47,8 @@ public class LocatorBarRendererMixin {
     ) {
         LocatorColorsConfig.LocatorHeadMode headMode = LocatorColorsConfig.getLocatorHeadMode();
 
-        // 1. Config Toggle & Strict Size Filter
-        if (headMode == LocatorColorsConfig.LocatorHeadMode.NEVER || width != 9 || height != 9) {
+        // Only customize the waypoint marker, not its other sprites.
+        if (width != 9 || height != 9) {
             original.call(graphics, renderPipeline, sprite, x, y, width, height, color);
             return;
         }
@@ -59,9 +59,12 @@ public class LocatorBarRendererMixin {
             return;
         }
 
-        // 2. Tab Menu & Dedicated Inspect Key Check
+        // Heads and distance labels have independent visibility settings.
         boolean isInspecting = mc.options.keyPlayerList.isDown() || LocatorColorsKeyBindings.isInspectDown();
-        if (headMode == LocatorColorsConfig.LocatorHeadMode.ON_KEY && !isInspecting) {
+        boolean showHead = headMode == LocatorColorsConfig.LocatorHeadMode.ALWAYS
+            || (headMode == LocatorColorsConfig.LocatorHeadMode.ON_KEY && isInspecting);
+        boolean showDistance = isInspecting && LocatorColorsConfig.isShowLocatorDistanceEnabled();
+        if (!showHead && !showDistance) {
             original.call(graphics, renderPipeline, sprite, x, y, width, height, color);
             return;
         }
@@ -79,40 +82,23 @@ public class LocatorBarRendererMixin {
             return;
         }
 
-        // --- DRAW HEAD ---
-        Identifier skinTexture = info.getSkin().body().texturePath();
         UUID playerId = info.getProfile().id();
-        
         Player playerByUUID = mc.level != null ? mc.level.getPlayerByUUID(playerId) : null;
-        boolean flip = playerByUUID != null && AvatarRenderer.isPlayerUpsideDown(playerByUUID);
 
-        if (!LocatorColorsConfig.isShowHeadBordersEnabled()) {
-            // Draw the 7x7 face directly in the center, skipping the colored background border
-            //? if >=26.1 {
-            PlayerFaceExtractor.extractRenderState(graphics, skinTexture, x + 1, y + 1, 7, info.showHat(), flip, -1);
-            //?} else {
-            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 1, y + 1, 7, info.showHat(), flip, -1);
-            *///?}
+        if (showHead) {
+            Identifier skinTexture = info.getSkin().body().texturePath();
+            boolean flip = playerByUUID != null && AvatarRenderer.isPlayerUpsideDown(playerByUUID);
+            locatorcolors$drawHead(graphics, skinTexture, x, y, color, info.showHat(), flip);
         } else {
-            // Draw the 7x7 solid border background
-            int solidBorderColor = color | 0xFF000000;
-            graphics.fill(x + 2, y + 1, x + 7, y + 8, solidBorderColor);
-            graphics.fill(x + 1, y + 2, x + 8, y + 7, solidBorderColor);
-
-            // Draw the 5x5 face on top
-            //? if >=26.1 {
-            PlayerFaceExtractor.extractRenderState(graphics, skinTexture, x + 2, y + 2, 5, info.showHat(), flip, -1);
-            //?} else {
-            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 2, y + 2, 5, info.showHat(), flip, -1);
-            *///?}
+            original.call(graphics, renderPipeline, sprite, x, y, width, height, color);
         }
 
         // --- DRAW DISTANCE (when inspecting) ---
-        if (isInspecting && LocatorColorsConfig.isShowLocatorDistanceEnabled() && playerByUUID != null && mc.player != null) {
+        if (showDistance && playerByUUID != null && mc.player != null) {
             double dist = mc.player.distanceTo(playerByUUID);
             int distMeters = (int) Math.round(dist);
             String distStr = distMeters >= 1000 ? String.format("%.1fk", distMeters / 1000.0) : (distMeters + "m");
-            
+
             float scale = 0.75F;
             float textWidth = mc.font.width(distStr) * scale;
             float renderX = (x + 4.5F) - (textWidth / 2.0F);
@@ -128,5 +114,30 @@ public class LocatorBarRendererMixin {
             *///?}
             graphics.pose().popMatrix();
         }
+    }
+
+    private void locatorcolors$drawHead(GuiGraphicsExtractor graphics, Identifier skinTexture,
+                                       int x, int y, int color, boolean showHat, boolean flip) {
+        if (!LocatorColorsConfig.isShowHeadBordersEnabled()) {
+            // Draw the 7x7 face directly in the center, skipping the colored background border
+            //? if >=26.1 {
+            PlayerFaceExtractor.extractRenderState(graphics, skinTexture, x + 1, y + 1, 7, showHat, flip, -1);
+            //?} else {
+            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 1, y + 1, 7, showHat, flip, -1);
+            *///?}
+        } else {
+            // Draw the 7x7 solid border background
+            int solidBorderColor = color | 0xFF000000;
+            graphics.fill(x + 2, y + 1, x + 7, y + 8, solidBorderColor);
+            graphics.fill(x + 1, y + 2, x + 8, y + 7, solidBorderColor);
+
+            // Draw the 5x5 face on top
+            //? if >=26.1 {
+            PlayerFaceExtractor.extractRenderState(graphics, skinTexture, x + 2, y + 2, 5, showHat, flip, -1);
+            //?} else {
+            /*PlayerFaceRenderer.draw(graphics, skinTexture, x + 2, y + 2, 5, showHat, flip, -1);
+            *///?}
+        }
+
     }
 }

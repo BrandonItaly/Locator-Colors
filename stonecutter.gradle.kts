@@ -1,8 +1,10 @@
 plugins {
     id("dev.kikugie.stonecutter")
     id("net.fabricmc.fabric-loom") version "1.15-SNAPSHOT" apply false
-    id("net.neoforged.moddev") version "2.0.140" apply false
+    id("net.neoforged.moddev") version "2.0.147" apply false
 }
+
+apply(from = "gradle/universal.gradle")
 
 stonecutter active "26.1-fabric" /* [SC] DO NOT EDIT */
 

@@ -14,13 +14,13 @@ mc_version_range="1.21.11"
 loom.platform="fabric"
 fabric_loader_version="0.18.4"
 fabric_api_version="0.144.0+26.1"
-mc_version_range="26.1,26.1.1"
+mc_version_range="26.1,26.1.1,26.1.2"
 modmenu_version="18.0.0-alpha.6"
 
 ["26.1-neoforge"]
 loom.platform="neoforge"
-neoforge_version="26.1.0.1-beta"
-mc_version_range="26.1,26.1.1"
+neoforge_version="26.1.0.19-beta"
+mc_version_range="26.1,26.1.1,26.1.2"
 
 ["26.2-fabric"]
 loom.platform="fabric"
@@ -40,3 +40,8 @@ fabric_loader_version="0.19.5"
 fabric_api_version="0.160.5+26.3"
 mc_version_range="26.3"
 modmenu_version="21.0.0-beta.1"
+
+["26.3-neoforge"]
+loom.platform="neoforge"
+neoforge_version="26.3.0.40-beta"
+mc_version_range="26.3"

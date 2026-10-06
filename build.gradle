@@ -1,10 +1,9 @@
-import java.text.SimpleDateFormat
 import groovy.json.JsonSlurper
 import groovy.json.JsonParserType
 import groovy.json.JsonOutput
 
 plugins {
-    id "me.modmuss50.mod-publish-plugin" version "0.7.4"
+    id "me.modmuss50.mod-publish-plugin" version "2.2.0" apply false
     id 'maven-publish'
 }
 
@@ -12,8 +11,6 @@ def loader = property("loom.platform")
 def isFabric = loader == "fabric"
 def isNeoForge = loader == "neoforge"
 def unobfuscated = !project.name.startsWith("1")
-def modPlatformName = isNeoForge ? "NeoForge" : loader.capitalize()
-
 System.out.println("Loader: ${loader} | Unobfuscated Minecraft: ${unobfuscated}")
 
 if (isFabric) {
@@ -39,23 +36,6 @@ java {
 tasks.withType(JavaCompile).configureEach {
     options.encoding = "UTF-8"
     options.release = javaRelease
-}
-
-def loadEnv() {
-    def envFile = rootProject.file('.env')
-    if (envFile.exists()) {
-        envFile.readLines().each { line ->
-            def (key, value) = line.split('=', 2)
-            if (key && value && !System.getenv(key)) {
-                System.setProperty(key.trim(), value.trim())
-            }
-        }
-    }
-}
-loadEnv()
-
-def getSecret(String key) {
-    return project.findProperty(key) ?: System.getenv(key) ?: System.getProperty(key) ?: ""
 }
 
 if (unobfuscated && isFabric) {
@@ -108,10 +88,10 @@ dependencies {
     }
 
     def modmenuVer = project.findProperty("modmenu_version") ?: ""
-    if (modmenuVer && modmenuVer != "[VERSIONED]") {
-            modImplementation("com.terraformersmc:modmenu:${modmenuVer}")
-        }
+    if (isFabric && modmenuVer && modmenuVer != "[VERSIONED]") {
+        modImplementation("com.terraformersmc:modmenu:${modmenuVer}")
     }
+}
 
 def aw = "${mod_id}.accesswidener"
 
@@ -150,7 +130,10 @@ processResources {
         mcVersionNext = "${minecraftMajor}.${minecraftMinor + 1}"
     }
 
-    def version_range = isFabric ? mc_version_range.split(",").join("\",\"") : mc_version_range
+    def supportedVersions = mc_version_range.split(",").collect { it.trim() }
+    def version_range = isFabric ? supportedVersions.join("\",\"") :
+        (supportedVersions.size() == 1 ? "[${supportedVersions.first()}]" :
+            "[${supportedVersions.first()},${supportedVersions.last()}]")
     def descriptorByLoader = [
             fabric  : "fabric.mod.json",
             forge   : "META-INF/mods.toml",
@@ -214,67 +197,14 @@ processResources {
     }
 }
 
-tasks.register('renameJarForPublication', Zip) {
-    def targetJar = (isFabric || loader == "forge") ? (unobfuscated ? jar : remapJar) : jar
-    
-    dependsOn targetJar
-    from targetJar.archiveFile.map { zipTree(it) }
-    archiveExtension = "jar"
-    metadataCharset "UTF-8"
-    destinationDirectory = base.libsDirectory
-    archiveClassifier = loader
+// Keep individual loader artifacts available alongside the combined release jar.
+def releaseJar = tasks.named(isFabric && !unobfuscated ? 'remapJar' : 'jar')
+def buildJar = tasks.register('buildJar', Copy) {
+    dependsOn releaseJar
+    from releaseJar.flatMap { it.archiveFile }
+    into rootProject.layout.buildDirectory.dir("libs/${mod_version}")
+    rename { "${archives_base_name}-${project.version}-${loader}.jar" }
 }
+tasks.named('assemble') { dependsOn buildJar }
 
-def buildJar = tasks.register("buildJar", Copy) {
-    into("${rootProject.layout.getBuildDirectory().get()}/libs/$mod_version")
-    dependsOn(tasks.named("renameJarForPublication"))
-    from(tasks.named("renameJarForPublication", Zip).flatMap { it.archiveFile })
-}
-
-assemble.dependsOn renameJarForPublication
-build.finalizedBy(buildJar)
-
-ext {
-    releaseChangelog = {
-        def changelogFile = rootProject.file("CHANGELOG.md")
-        return changelogFile.exists() ? changelogFile.text : "## $mod_name $version\n\nNo changelog available."
-    }
-}
-
-publishMods {
-    displayName = "$mod_name [$modPlatformName] $project.version"
-    type = STABLE
-    changelog = releaseChangelog()
-    file = renameJarForPublication.archiveFile
-    
-    modLoaders.add(loader)
-    if (isFabric) modLoaders.add "quilt"
-    else if (loader == "forge" && stonecutter.eval(stonecutter.current.version, "<=1.20.1")) modLoaders.add "neoforge"
-    
-    def versions = (mc_version_range && mc_version_range != "[VERSIONED]") ? mc_version_range.split(",") : [stonecutter.current.version]
-    def supportedJavaVersions = isJava25 ? [JavaVersion.VERSION_25] : [JavaVersion.VERSION_21]
-
-    curseforge {
-        projectId = curseforge_id
-        accessToken = getSecret("CURSEFORGE_API_KEY")
-        minecraftVersions.addAll(versions)
-        javaVersions.addAll(supportedJavaVersions)
-        clientRequired = true
-        serverRequired = false
-        if (isFabric) {
-            optional("modmenu")
-            requires("fabric-api")
-        }
-    }
-
-    modrinth {
-        projectId = modrinth_id
-        accessToken = getSecret("MODRINTH_TOKEN")
-        minecraftVersions.addAll(versions)
-        publishMods.version = "$project.version+$loader"
-        if (isFabric) {
-            optional("modmenu")
-            requires("fabric-api")
-        }
-    }
-}
+if (isFabric) apply from: rootProject.file('gradle/publish.gradle')

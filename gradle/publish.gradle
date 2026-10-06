@@ -46,7 +46,7 @@ publishMods {
             projectId = modrinthProject
             accessToken = secret('MODRINTH_TOKEN')
             minecraftVersions.addAll(supportedMinecraft)
-            environment = CLIENT_ONLY_SERVER_OPTIONAL
+            environment = CLIENT_ONLY
             optional('modmenu')
         }
     }
